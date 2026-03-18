@@ -103,35 +103,14 @@ function useHUD(refs: ReturnType<typeof useHUDRefs>) {
       });
     };
 
-    const bootEl = document.getElementById('boot-screen');
-    const poll = setInterval(() => {
-      if (!bootEl || parseFloat(getComputedStyle(bootEl).opacity) < 0.05) {
-        clearInterval(poll);
-        fireHUD();
-      }
-    }, 150);
-    const fallback = setTimeout(() => { clearInterval(poll); fireHUD(); }, 5000);
+    const hudTimer = setTimeout(fireHUD, 3200);
 
     return () => {
       gsap.ticker.remove(updateBars);
       unregisterScroll();
-      clearInterval(poll);
-      clearTimeout(fallback);
+      clearTimeout(hudTimer);
     };
   }, []);
-}
-
-function useModalEvents(setUiModalOpen: (v: boolean) => void) {
-  useEffect(() => {
-    const onOpen  = () => setUiModalOpen(true);
-    const onClose = () => setUiModalOpen(false);
-    window.addEventListener('open-ui-modal',  onOpen);
-    window.addEventListener('close-ui-modal', onClose);
-    return () => {
-      window.removeEventListener('open-ui-modal',  onOpen);
-      window.removeEventListener('close-ui-modal', onClose);
-    };
-  }, [setUiModalOpen]);
 }
 
 function useArchiveGSAP(archiveOpen: boolean) {
@@ -154,19 +133,14 @@ function useBootScreen() {
 
 export default function Home() {
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [uiModalOpen, setUiModalOpen] = useState(false);
   const refs = useHUDRefs();
 
   useBootScreen();
   useVFX();
   useHUD(refs);
-  useModalEvents(setUiModalOpen);
   useArchiveGSAP(archiveOpen);
 
-  const openArchive  = useCallback((e: React.MouseEvent) => { e.preventDefault(); setArchiveOpen(true); }, []);
   const closeArchive = useCallback(() => setArchiveOpen(false), []);
-
-  const hudVisible = useMemo(() => !archiveOpen && !uiModalOpen, [archiveOpen, uiModalOpen]);
 
   const cornerRefs = useMemo(
     () => [refs.cTL, refs.cTR, refs.cBL, refs.cBR],
@@ -175,7 +149,7 @@ export default function Home() {
 
   return (
     <>
-      <UIModal />
+      <UIModal onEnter={() => setArchiveOpen(true)} />
       <ArchiveModal isOpen={archiveOpen} onClose={closeArchive} />
 
       <div
@@ -183,8 +157,7 @@ export default function Home() {
         ref={refs.borderRef}
         role="region"
         aria-label="Game interface"
-        aria-hidden={!hudVisible}
-        style={{ opacity: 0, visibility: hudVisible ? 'visible' : 'hidden' }}
+        style={{ opacity: 0 }}
       >
         <div id="sfb-frame-top"    className="sfb-frame-line h" />
         <div id="sfb-frame-bottom" className="sfb-frame-line h bottom" />
@@ -246,30 +219,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div id="boot-screen" aria-hidden="true" />
-
-      <a
-        href="#nav-overlay"
-        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black"
-      >
-        Skip to content
-      </a>
-
-      <nav
-        id="nav-overlay"
-        style={{ visibility: hudVisible ? 'visible' : 'hidden' }}
-        aria-label="Main navigation"
-      >
-        <a
-          href="#"
-          className="nav-btn"
-          onClick={openArchive}
-          aria-label="Enter Archive"
-          tabIndex={hudVisible ? 0 : -1}
-        >
-          [ ENTER ]
-        </a>
-      </nav>
+      <div id="boot-screen" aria-hidden="true"><div id="boot-lines" /></div>
     </>
   );
 }

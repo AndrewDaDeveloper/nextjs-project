@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import "./UIModal.css";
 
 interface Item {
@@ -8,22 +8,35 @@ interface Item {
   description: string;
 }
 
+interface UIModalProps {
+  onEnter: () => void;
+}
+
 const ITEMS: Item[] = [
   { name: "ABOUT US", tag: "Coming soon", description: "We are city-17 rebel faction established in 2026 by N9nepenguinz and MihlaLOL" },
   { name: "JOIN US NOW", tag: "Coming soon", description: "Are you ready for the New World Order? With you on my side, Death to the UU. We will liberate America, once and for all." },
 ];
 
-export default function UIModal() {
+export default function UIModal({ onEnter }: UIModalProps) {
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
   const [active, setActive] = useState<number>(0);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     setClosing(true);
     window.dispatchEvent(new Event("close-ui-modal"));
-    setTimeout(() => { setClosing(false); setOpen(false); }, 500);
-  };
+    closeTimer.current = setTimeout(() => {
+      setClosing(false);
+      setOpen(false);
+    }, 500);
+  }, []);
+
+  const handleEnter = useCallback(() => {
+    handleClose();
+    onEnter();
+  }, [handleClose, onEnter]);
 
   useEffect(() => {
     const handler = () => setOpen(true);
@@ -40,6 +53,10 @@ export default function UIModal() {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleClose(); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
+  }, [handleClose]);
+
+  useEffect(() => {
+    return () => { if (closeTimer.current) clearTimeout(closeTimer.current); };
   }, []);
 
   if (!open) return null;
@@ -47,7 +64,6 @@ export default function UIModal() {
   return (
     <div className={`overlay${visible ? " vis" : ""}${closing ? " closing" : ""}`}>
       <div className="container">
-
         <div className="panel-left">
           <span className="label">// select entry</span>
           <ul className="list">
@@ -56,7 +72,6 @@ export default function UIModal() {
                 key={i}
                 className={`row${active === i ? " active" : ""}`}
                 onMouseEnter={() => setActive(i)}
-                onClick={() => setActive(i)}
               >
                 <div className="bar" />
                 <span className="name">{item.name}</span>
@@ -79,10 +94,12 @@ export default function UIModal() {
           <div className="line" />
           <p className="desc">{ITEMS[active].description}</p>
         </div>
-
       </div>
 
-      <button className="close-btn" onClick={handleClose}>CLOSE</button>
+      <div className="btn-row">
+        <button className="close-btn" onClick={handleEnter}>ENTER</button>
+        <button className="close-btn" onClick={handleClose}>CLOSE</button>
+      </div>
       <span className="esc-hint">ESC to dismiss</span>
     </div>
   );

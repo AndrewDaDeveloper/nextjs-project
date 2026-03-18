@@ -154,6 +154,11 @@
   margin: 0;
 }
 
+.btn-row {
+  display: flex;
+  gap: 16px;
+}
+
 .close-btn {
   font-family: 'Press Start 2P', monospace;
   font-size: 7px;
@@ -180,4 +185,5 @@
   .container { flex-direction: column; height: auto; }
   .panel-left { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .divider { display: none; }
+  .btn-row { flex-direction: column; align-items: center; }
 }

@@ -41,10 +41,10 @@ export function initBootScreen() {
   }
 
   if (document.readyState === 'complete') {
-    window.requestAnimationFrame(() => window.requestAnimationFrame(dismiss));
+    window.requestAnimationFrame(() => window.requestAnimationFrame(() => setTimeout(dismiss, 3200)));
   } else {
     window.addEventListener('load', () => {
-      window.requestAnimationFrame(() => window.requestAnimationFrame(dismiss));
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => setTimeout(dismiss, 3200)));
     }, { once: true });
   }
 }

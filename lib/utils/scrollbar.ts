@@ -1,20 +1,6 @@
 import { gsap } from 'gsap';
 
 function getScroll(): { top: number; max: number } {
-  const candidates: (Element | null)[] = [
-    document.querySelector('[data-scroll-container]'),
-    document.querySelector('.scroll-container'),
-    document.querySelector('#scroll-container'),
-    document.querySelector('main'),
-  ];
-
-  for (const el of candidates) {
-    if (!el) continue;
-    const { scrollTop, scrollHeight, clientHeight } = el as HTMLElement;
-    const max = scrollHeight - clientHeight;
-    if (max > 10) return { top: scrollTop, max };
-  }
-
   return {
     top: window.scrollY,
     max: document.documentElement.scrollHeight - window.innerHeight,
