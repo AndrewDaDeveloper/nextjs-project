@@ -5,23 +5,14 @@ import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { initCorridorVFX } from './corridorVFX';
 import { PostShader, ChromaShader } from './postFX';
 import {
-  camHalfW, scrollRange, CAM_PAD,
-  createGalleryState, buildGallery, updateGallery,
-  createCenterImageState, buildCenterImage, triggerEvaporation, tickCenterImage,
+  camHalfW, galStrip, scrollRange,
+  createGalleryState, buildGallery, updateGallery, resizeGallery,
+  createCenterImageState, buildCenterImage, resizeCenterImage, triggerEvaporation, tickCenterImage,
   GalleryState, CenterImageState,
 } from './vfxObjects';
 
-const CAM_H   = 2.2;
+const CAM_H  = 2.2;
 const isSmall = () => window.innerWidth < 480;
-
-type Breakpoint = 'small' | 'mobile' | 'desktop';
-
-function getBreakpoint(): Breakpoint {
-  const w = window.innerWidth;
-  if (w < 480) return 'small';
-  if (w < 768) return 'mobile';
-  return 'desktop';
-}
 
 export function initVFX() {
   let scene: THREE.Scene;
@@ -48,9 +39,6 @@ export function initVFX() {
   let resT: ReturnType<typeof setTimeout>;
   let onContextLost: ((e: Event) => void) | null = null;
   let onContextRestored: (() => void) | null = null;
-
-  let currentBreakpoint: Breakpoint = getBreakpoint();
-  let currentPortrait: boolean = window.innerHeight > window.innerWidth;
 
   function getNDC(clientX: number, clientY: number) {
     ndcMouse.x =  (clientX / window.innerWidth)  * 2 - 1;
@@ -143,8 +131,7 @@ export function initVFX() {
 
   function init() {
     scene  = new THREE.Scene();
-    const hw = camHalfW();
-    camera = new THREE.OrthographicCamera(-(hw + CAM_PAD), hw + CAM_PAD, CAM_H, -CAM_H, 0.1, 100);
+    camera = new THREE.OrthographicCamera(-camHalfW(), camHalfW(), CAM_H, -CAM_H, 0.1, 100);
     camera.position.set(0, 0, 5);
 
     renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
@@ -217,10 +204,8 @@ export function initVFX() {
     resizeHandler = () => {
       clearTimeout(resT);
       resT = setTimeout(() => {
-        const nw = window.innerWidth, nh = window.innerHeight;
-        const hw = camHalfW();
-
-        camera.left = -(hw + CAM_PAD); camera.right = hw + CAM_PAD;
+        const nw = window.innerWidth, nh = window.innerHeight, hw = camHalfW();
+        camera.left = -hw; camera.right = hw;
         camera.top = CAM_H + camY; camera.bottom = -CAM_H + camY;
         camera.updateProjectionMatrix();
         renderer.setSize(nw, nh);
@@ -228,16 +213,8 @@ export function initVFX() {
         composer.setSize(nw, nh);
         postPass.uniforms.resolution.value.set(nw, nh);
         corridorVFX.onResize(nw, nh);
-
-        const newBreakpoint = getBreakpoint();
-        const newPortrait   = nh > nw;
-
-        if (newBreakpoint !== currentBreakpoint || newPortrait !== currentPortrait) {
-          currentBreakpoint = newBreakpoint;
-          currentPortrait   = newPortrait;
-          buildCenterImage(scene, center);
-          buildGallery(scene, gallery);
-        }
+        resizeGallery(scene, gallery);
+        resizeCenterImage(center);
       }, 100);
     };
     window.addEventListener('resize', resizeHandler);

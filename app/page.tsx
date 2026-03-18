@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './global.css';
-import { initBootScreen, destroyBootScreen } from '../lib/interface/bootScreen';
+import { initBootScreen } from '../lib/interface/bootScreen';
 import { initVFX } from '../lib/vfxShaders/initVFX';
 import { buildHUD } from '../lib/interface/hud';
 import { createScrollUpdater, registerScrollListeners } from '../lib/utils/scrollbar';
@@ -149,7 +149,6 @@ function useArchiveGSAP(archiveOpen: boolean) {
 function useBootScreen() {
   useEffect(() => {
     initBootScreen();
-    return () => destroyBootScreen();
   }, []);
 }
 

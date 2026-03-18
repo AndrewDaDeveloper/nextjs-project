@@ -10,7 +10,6 @@ const IMG_PATHS = [
 const N    = IMG_PATHS.length;
 const POOL = N * 3;
 const CAM_H = 2.2;
-export const CAM_PAD = 1.4;
 
 const isSmall       = () => window.innerWidth < 480;
 const isMobile      = () => window.innerWidth < 768;
@@ -27,6 +26,8 @@ const centerImgSize = () => isSmall() ? 1.4 : isMobile() ? 1.7 : 2.1;
 
 export { scrollRange };
 
+const _imgTexCache: (THREE.Texture | null)[] = Array(N).fill(null);
+
 function makeTex(w: number, h: number, fn: (ctx: CanvasRenderingContext2D, w: number, h: number) => void) {
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
@@ -40,15 +41,9 @@ function clearArr(arr: THREE.Mesh[]) {
   arr.forEach(m => {
     if (m.parent) m.parent.remove(m);
     m.geometry.dispose();
-    if ((m.material as any).map) (m.material as any).map.dispose();
     (m.material as THREE.Material).dispose();
   });
   arr.length = 0;
-}
-
-function smoothstep(edge0: number, edge1: number, x: number): number {
-  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
 }
 
 export interface GalleryState {
@@ -56,7 +51,6 @@ export interface GalleryState {
   meshes: THREE.Mesh[];
   offset: number;
   drag: { on: boolean; sx: number; so: number; vx: number; lx: number; lt: number };
-  imgTex: THREE.Texture[];
   _labelTex: THREE.Texture | null;
 }
 
@@ -66,7 +60,6 @@ export function createGalleryState(): GalleryState {
     meshes: [],
     offset: 0,
     drag: { on: false, sx: 0, so: 0, vx: 0, lx: 0, lt: 0 },
-    imgTex: [],
     _labelTex: null,
   };
 }
@@ -85,9 +78,6 @@ export function buildGallery(scene: THREE.Scene, state: GalleryState) {
   scene.add(state.group);
   state.group.position.set(0, textY() - uiOffsetY(), 0.1);
 
-  const hw = camHalfW();
-  const wf = (hw + CAM_PAD) / hw;
-
   const lFontSize = isSmall() ? 26 : 34;
   const ltex = makeTex(512, 64, (ctx, w, h) => {
     ctx.clearRect(0, 0, w, h);
@@ -101,22 +91,20 @@ export function buildGallery(scene: THREE.Scene, state: GalleryState) {
   });
   state._labelTex = ltex;
 
-  const iw = itemW() * wf, ih = itemH();
+  const iw = itemW(), ih = itemH();
   const lm = new THREE.Mesh(
-    new THREE.PlaneGeometry(galLabelW() * wf, 0.32),
+    new THREE.PlaneGeometry(galLabelW(), 0.32),
     new THREE.MeshBasicMaterial({ map: ltex, transparent: true, depthWrite: false, opacity: 1.0 }),
   );
   lm.position.set(0, ih / 2 + 0.24, 0);
   state.group.add(lm);
   state.meshes.push(lm);
 
-  const loader = new THREE.TextureLoader();
-
   for (let i = 0; i < POOL; i++) {
     const idx = i % N;
     const mat = new THREE.ShaderMaterial({
       uniforms: {
-        tDiffuse: { value: state.imgTex[idx] || null },
+        tDiffuse: { value: _imgTexCache[idx] },
         time:     { value: 0 },
         seed:     { value: idx * 2.17 },
         opacity:  { value: 1 },
@@ -131,10 +119,10 @@ export function buildGallery(scene: THREE.Scene, state: GalleryState) {
     state.group.add(mesh);
     state.meshes.push(mesh);
 
-    if (!state.imgTex[idx]) {
-      loader.load(IMG_PATHS[idx], tex => {
+    if (!_imgTexCache[idx]) {
+      new THREE.TextureLoader().load(IMG_PATHS[idx], tex => {
         tex.minFilter = tex.magFilter = THREE.LinearFilter;
-        state.imgTex[idx] = tex;
+        _imgTexCache[idx] = tex;
         state.meshes.forEach(m => {
           if (m.userData.idx === idx && (m.material as any).uniforms)
             (m.material as any).uniforms.tDiffuse.value = tex;
@@ -144,25 +132,35 @@ export function buildGallery(scene: THREE.Scene, state: GalleryState) {
   }
 }
 
-export function updateGallery(state: GalleryState, t: number) {
+export function resizeGallery(scene: THREE.Scene, state: GalleryState) {
   if (!state.group) return;
-  const hw = camHalfW();
-  const wf = (hw + CAM_PAD) / hw;
-  const step = galStep() * wf;
-  const strip = galStrip() * wf;
-  const fadeStart = hw * 0.42;
-  const fadeEnd   = hw * 0.92;
-
+  state.group.position.set(0, textY() - uiOffsetY(), 0.1);
+  const iw = itemW(), ih = itemH();
   state.meshes.forEach(m => {
     if (m.userData.slot == null) return;
-    let x = m.userData.slot * step - state.offset * wf;
+    m.geometry.dispose();
+    m.geometry = new THREE.PlaneGeometry(iw, ih);
+  });
+  const labelMesh = state.meshes.find(m => m.userData.slot == null);
+  if (labelMesh) {
+    labelMesh.geometry.dispose();
+    labelMesh.geometry = new THREE.PlaneGeometry(galLabelW(), 0.32);
+    labelMesh.position.set(0, ih / 2 + 0.24, 0);
+  }
+}
+
+export function updateGallery(state: GalleryState, t: number) {
+  if (!state.group) return;
+  const hw = camHalfW(), step = galStep(), strip = galStrip();
+  state.meshes.forEach(m => {
+    if (m.userData.slot == null) return;
+    let x = m.userData.slot * step - state.offset;
     while (x >  strip / 2) x -= strip;
     while (x < -strip / 2) x += strip;
     m.position.x = x;
     const u = (m.material as any).uniforms;
     if (u) {
-      const dist = Math.abs(x);
-      u.opacity.value = 1 - smoothstep(fadeStart, fadeEnd, dist);
+      u.opacity.value = THREE.MathUtils.clamp(1 - Math.abs(x) / (hw * 1.05), 0, 1);
       u.time.value    = t;
     }
   });
@@ -186,19 +184,16 @@ export function createCenterImageState(): CenterImageState {
 
 export function buildCenterImage(scene: THREE.Scene, state: CenterImageState) {
   if (state.mesh) {
-    const oldTex = (state.mesh.material as any).uniforms?.tDiffuse?.value as THREE.Texture | null;
-    if (oldTex) oldTex.dispose();
     scene.remove(state.mesh);
     state.mesh.geometry.dispose();
     (state.mesh.material as THREE.Material).dispose();
     state.mesh = null;
   }
   const size = centerImgSize();
-  const hw = camHalfW();
-  const widthFix = (hw + CAM_PAD) / hw;
+  const existingTex = (_imgTexCache as any)['_center'] as THREE.Texture | undefined;
   const mat = new THREE.ShaderMaterial({
     uniforms: {
-      tDiffuse:  { value: null },
+      tDiffuse:  { value: existingTex ?? null },
       time:      { value: 0 },
       hover:     { value: 0.0 },
       evaporate: { value: state.evapT },
@@ -209,14 +204,24 @@ export function buildCenterImage(scene: THREE.Scene, state: CenterImageState) {
     transparent: true,
     depthWrite: false,
   });
-  state.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size * widthFix, size), mat);
+  state.mesh = new THREE.Mesh(new THREE.PlaneGeometry(size, size), mat);
   state.mesh.position.set(0, 0, 0.2);
   scene.add(state.mesh);
 
-  new THREE.TextureLoader().load('/SsPepHc3.png', tex => {
-    tex.minFilter = tex.magFilter = THREE.LinearFilter;
-    mat.uniforms.tDiffuse.value = tex;
-  });
+  if (!existingTex) {
+    new THREE.TextureLoader().load('/SsPepHc3.png', tex => {
+      tex.minFilter = tex.magFilter = THREE.LinearFilter;
+      (_imgTexCache as any)['_center'] = tex;
+      mat.uniforms.tDiffuse.value = tex;
+    });
+  }
+}
+
+export function resizeCenterImage(state: CenterImageState) {
+  if (!state.mesh) return;
+  const size = centerImgSize();
+  state.mesh.geometry.dispose();
+  state.mesh.geometry = new THREE.PlaneGeometry(size, size);
 }
 
 export function triggerEvaporation(state: CenterImageState) {

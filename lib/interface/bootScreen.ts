@@ -1,13 +1,10 @@
-const BOOT_TOTAL_MS   = 3200;
-const BOOT_FADE_MS    = 1200;
-const BOOT_NAV_DELAY  = 800;
-const COUNTER_TICK_MS = 60;
-
 export function initBootScreen() {
   const bootScreen = document.getElementById('boot-screen');
   if (!bootScreen) return;
 
-  bootScreen.innerHTML = `
+  const bs = bootScreen as HTMLElement;
+
+  bs.innerHTML = `
     <div id="boot-line"></div>
     <div id="boot-h-line"></div>
     <div id="boot-corners"></div>
@@ -28,38 +25,26 @@ export function initBootScreen() {
     iv = setInterval(() => {
       val = Math.min(val + Math.floor(Math.random() * 18) + 4, 100);
       counter.textContent = `${String(val).padStart(3, '0')}%`;
-      if (val >= 100 && iv) {
-        clearInterval(iv);
-        iv = null;
-      }
-    }, COUNTER_TICK_MS);
+      if (val >= 100 && iv) clearInterval(iv);
+    }, 60);
   }
 
-  const fadeTimer = setTimeout(() => {
-    if (iv) { clearInterval(iv); iv = null; }
-    bootScreen.style.transition = `opacity ${BOOT_FADE_MS}ms ease`;
-    bootScreen.style.opacity = '0';
-
-    const hideTimer = setTimeout(() => {
-      bootScreen.style.display = 'none';
-    }, BOOT_FADE_MS);
-
+  function dismiss() {
+    if (iv) clearInterval(iv);
+    bs.style.transition = 'opacity 1.2s ease';
+    bs.style.opacity = '0';
+    bs.addEventListener('transitionend', () => {
+      bs.style.display = 'none';
+    }, { once: true });
     const nav = document.getElementById('nav-overlay');
-    const navTimer = setTimeout(() => {
-      nav?.classList.add('visible');
-    }, BOOT_NAV_DELAY);
+    if (nav) setTimeout(() => nav.classList.add('visible'), 800);
+  }
 
-    bootScreen.dataset.hideTimer = String(hideTimer);
-    bootScreen.dataset.navTimer  = String(navTimer);
-  }, BOOT_TOTAL_MS);
-
-  bootScreen.dataset.fadeTimer = String(fadeTimer);
-}
-
-export function destroyBootScreen() {
-  const bootScreen = document.getElementById('boot-screen');
-  if (!bootScreen) return;
-  clearTimeout(Number(bootScreen.dataset.fadeTimer));
-  clearTimeout(Number(bootScreen.dataset.hideTimer));
-  clearTimeout(Number(bootScreen.dataset.navTimer));
+  if (document.readyState === 'complete') {
+    window.requestAnimationFrame(() => window.requestAnimationFrame(dismiss));
+  } else {
+    window.addEventListener('load', () => {
+      window.requestAnimationFrame(() => window.requestAnimationFrame(dismiss));
+    }, { once: true });
+  }
 }
