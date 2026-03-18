@@ -39,32 +39,60 @@
   border-right: 1px solid rgba(255,255,255,0.08);
 }
 
-.panelLeft {
+.unifiedCard {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 40px;
+}
+
+.tabRow {
+  display: flex;
+  flex-direction: row;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.tabBtn {
+  flex: 1;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.2);
+  background: none;
+  border: none;
   border-right: 1px solid rgba(255,255,255,0.08);
+  padding: 18px 12px;
+  cursor: pointer;
+  transition: color 0.25s, background 0.25s;
+  position: relative;
 }
 
-.panelRight {
+.tabBtn:last-child { border-right: none; }
+
+.tabBtn::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: transparent;
+  transition: background 0.25s;
+}
+
+.tabActive {
+  color: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.03);
+}
+
+.tabActive::after { background: white; }
+
+.cardBody {
   flex: 1;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 40px;
-}
-
-.divider {
-  width: 1px;
-  background: rgba(255,255,255,0.08);
-}
-
-.mapSection {
-  flex: 1;
-  overflow: hidden;
-  position: relative;
 }
 
 .label {
@@ -75,54 +103,6 @@
   text-transform: uppercase;
   margin-bottom: 28px;
 }
-
-.list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.row {
-  position: relative;
-  padding: 20px 0 20px 16px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
-  cursor: pointer;
-}
-
-.row:first-child { border-top: 1px solid rgba(255,255,255,0.05); }
-
-.bar {
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 2px;
-  background: transparent;
-  transition: background 0.3s;
-}
-
-.row.active .bar { background: white; }
-
-.name {
-  display: block;
-  font-size: clamp(11px, 1.4vw, 15px);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.22);
-  transition: color 0.3s;
-  margin-bottom: 6px;
-}
-
-.row.active .name { color: white; }
-
-.tag {
-  display: block;
-  font-size: 6px;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: rgba(255,255,255,0.0);
-  transition: color 0.3s;
-}
-
-.row.active .tag { color: rgba(255,255,255,0.3); }
 
 .detailName {
   display: block;
@@ -166,6 +146,12 @@
   letter-spacing: 0.08em;
   color: rgba(255,255,255,0.35);
   margin: 0;
+}
+
+.mapSection {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
 }
 
 .btnRow {
@@ -234,11 +220,46 @@
   display: none !important;
 }
 
+.mapSkeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #080808;
+  overflow: hidden;
+}
+
+.mapSkeleton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255,255,255,0.04) 50%,
+    transparent 60%
+  );
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.8s ease-in-out infinite;
+}
+
+.mapSkeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+@keyframes skeletonShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
 @media (max-width: 900px) {
   .container    { flex-direction: column; height: auto; }
   .panelSection { flex: none; width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .mapSection   { height: 320px; }
-  .divider      { display: none; }
-  .panelLeft    { border-right: none; border-bottom: 1px solid rgba(255,255,255,0.08); }
   .btnRow       { flex-direction: column; align-items: center; }
 }

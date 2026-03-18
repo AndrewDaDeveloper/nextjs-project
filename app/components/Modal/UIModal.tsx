@@ -5,36 +5,31 @@ import styles from "./UIModal.module.css";
 
 const MapPanel = dynamic(() => import("./MapPanel"), { ssr: false });
 
-interface Item {
-  name: string;
-  tag: string;
-  description: string;
-}
-
 interface UIModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEnter: () => void;
 }
 
-const ITEMS: Item[] = [
+const TABS = [
   {
-    name: "ABOUT US",
-    tag: "Coming soon",
+    id: "about",
+    label: "ABOUT US",
+    tag: "EST. 2026",
     description: "We are city-17 rebel faction established in 2026 by N9nepenguinz and MihlaLOL",
   },
   {
-    name: "JOIN US NOW",
-    tag: "Coming soon",
-    description:
-      "Are you ready for the New World Order? With you on my side, Death to the UU. We will liberate America, once and for all.",
+    id: "join",
+    label: "JOIN US",
+    tag: "RECRUITING",
+    description: "Are you ready for the New World Order? With you on my side, Death to the UU. We will liberate America, once and for all.",
   },
 ];
 
 export default function UIModal({ isOpen, onClose, onEnter }: UIModalProps) {
   const [visible, setVisible] = useState(false);
   const [closing, setClosing] = useState(false);
-  const [active, setActive] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState(0);
 
   const handleClose = () => {
     setClosing(true);
@@ -53,7 +48,7 @@ export default function UIModal({ isOpen, onClose, onEnter }: UIModalProps) {
 
   useEffect(() => {
     if (isOpen) requestAnimationFrame(() => setVisible(true));
-    else { setVisible(false); setActive(0); }
+    else { setVisible(false); setActiveTab(0); }
   }, [isOpen]);
 
   useEffect(() => {
@@ -63,6 +58,8 @@ export default function UIModal({ isOpen, onClose, onEnter }: UIModalProps) {
   }, []);
 
   if (!isOpen) return null;
+
+  const tab = TABS[activeTab];
 
   return (
     <div
@@ -75,35 +72,30 @@ export default function UIModal({ isOpen, onClose, onEnter }: UIModalProps) {
       <div className={styles.container}>
 
         <div className={styles.panelSection}>
-          <div className={styles.panelLeft}>
-            <span className={styles.label}>// select entry</span>
-            <ul className={styles.list}>
-              {ITEMS.map((item, i) => (
-                <li
-                  key={i}
-                  className={[styles.row, active === i ? styles.active : ""].filter(Boolean).join(" ")}
-                  onMouseEnter={() => setActive(i)}
+          <div className={styles.unifiedCard}>
+            <div className={styles.tabRow}>
+              {TABS.map((t, i) => (
+                <button
+                  key={t.id}
+                  className={[styles.tabBtn, activeTab === i ? styles.tabActive : ""].filter(Boolean).join(" ")}
+                  onClick={() => setActiveTab(i)}
                 >
-                  <div className={styles.bar} />
-                  <span className={styles.name}>{item.name}</span>
-                  <span className={styles.tag}>{item.tag}</span>
-                </li>
+                  {t.label}
+                </button>
               ))}
-            </ul>
-          </div>
-
-          <div className={styles.divider} />
-
-          <div className={styles.panelRight}>
-            <span className={styles.label}>// selected entry</span>
-            <span className={styles.detailName}>{ITEMS[active].name}</span>
-            <div className={styles.line} />
-            <div className={styles.meta}>
-              <span className={styles.key}>category</span>
-              <span className={styles.val}>{ITEMS[active].tag}</span>
             </div>
-            <div className={styles.line} />
-            <p className={styles.desc}>{ITEMS[active].description}</p>
+
+            <div className={styles.cardBody}>
+              <span className={styles.label}>// {tab.id}</span>
+              <span className={styles.detailName}>{tab.label}</span>
+              <div className={styles.line} />
+              <div className={styles.meta}>
+                <span className={styles.key}>status</span>
+                <span className={styles.val}>{tab.tag}</span>
+              </div>
+              <div className={styles.line} />
+              <p className={styles.desc}>{tab.description}</p>
+            </div>
           </div>
         </div>
 
