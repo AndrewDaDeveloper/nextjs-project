@@ -1,14 +1,19 @@
 'use client';
-import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import './global.css';
 import { initBootScreen } from '../lib/interface/bootScreen';
 import { initVFX } from '../lib/vfxShaders/initVFX';
 import { buildHUD } from '../lib/interface/hud';
 import { createScrollUpdater, registerScrollListeners } from '../lib/utils/scrollbar';
 import ArchiveModal from './components/ArchiveModal/ArchiveModal';
 import UIModal from '@/app/components/Modal/UIModal';
+
+gsap.registerPlugin(ScrollTrigger);
+
+const TICKS = ['t-c','t-l','t-r','b-c','b-l','b-r','l-c','l-t','l-b','r-c','r-t','r-b'] as const;
+const CORNER_POSITIONS = ['tl','tr','bl','br'] as const;
+const SIDE_BAR_SIDES = ['left','right'] as const;
 
 function isWebGLAvailable(): boolean {
   try {
@@ -22,16 +27,15 @@ function isWebGLAvailable(): boolean {
 
 function showWebGLError(): void {
   const el = document.createElement('div');
-  el.style.cssText = 'position:fixed;inset:0;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:monospace;z-index:999999;padding:20px;text-align:center;';
-  el.innerHTML = '<h1 style="color:#ff4444;margin-bottom:20px;">WebGL Not Available</h1><p style="max-width:500px;line-height:1.6;">Your browser does not support WebGL. Please enable hardware acceleration or try a different browser.</p>';
+  el.style.cssText =
+    'position:fixed;inset:0;background:#000;color:#fff;display:flex;flex-direction:column;' +
+    'align-items:center;justify-content:center;font-family:monospace;z-index:999999;padding:20px;text-align:center;';
+  el.innerHTML =
+    '<h1 style="color:#ff4444;margin-bottom:20px;">WebGL Not Available</h1>' +
+    '<p style="max-width:500px;line-height:1.6;">Your browser does not support WebGL. ' +
+    'Please enable hardware acceleration or try a different browser.</p>';
   document.body.appendChild(el);
 }
-
-gsap.registerPlugin(ScrollTrigger);
-
-const TICKS = ['t-c','t-l','t-r','b-c','b-l','b-r','l-c','l-t','l-b','r-c','r-t','r-b'] as const;
-const CORNER_POSITIONS = ['tl','tr','bl','br'] as const;
-const SIDE_BAR_SIDES = ['left','right'] as const;
 
 function useHUDRefs() {
   const leftBarRef   = useRef<HTMLDivElement>(null);
@@ -60,7 +64,7 @@ function useHUDRefs() {
   };
 }
 
-function useVFX() {
+function useVFXInit() {
   useEffect(() => {
     if (!isWebGLAvailable()) {
       showWebGLError();
@@ -79,6 +83,7 @@ function useHUD(refs: ReturnType<typeof useHUDRefs>) {
       leftPctRef:  refs.leftPctRef  as React.RefObject<HTMLSpanElement>,
       rightPctRef: refs.rightPctRef as React.RefObject<HTMLSpanElement>,
     });
+
     gsap.ticker.add(updateBars);
     const unregisterScroll = registerScrollListeners(updateBars);
 
@@ -103,14 +108,35 @@ function useHUD(refs: ReturnType<typeof useHUDRefs>) {
       });
     };
 
-    const hudTimer = setTimeout(fireHUD, 3200);
+    const bootEl = document.getElementById('boot-screen');
+    const poll = setInterval(() => {
+      if (!bootEl || parseFloat(getComputedStyle(bootEl).opacity) < 0.05) {
+        clearInterval(poll);
+        fireHUD();
+      }
+    }, 150);
+    const fallback = setTimeout(() => { clearInterval(poll); fireHUD(); }, 5000);
 
     return () => {
       gsap.ticker.remove(updateBars);
       unregisterScroll();
-      clearTimeout(hudTimer);
+      clearInterval(poll);
+      clearTimeout(fallback);
     };
   }, []);
+}
+
+function useModalEvents(setUiModalOpen: React.Dispatch<React.SetStateAction<boolean>>) {
+  useEffect(() => {
+    const onOpen  = () => setUiModalOpen(true);
+    const onClose = () => setUiModalOpen(false);
+    window.addEventListener('open-ui-modal',  onOpen);
+    window.addEventListener('close-ui-modal', onClose);
+    return () => {
+      window.removeEventListener('open-ui-modal',  onOpen);
+      window.removeEventListener('close-ui-modal', onClose);
+    };
+  }, [setUiModalOpen]);
 }
 
 function useArchiveGSAP(archiveOpen: boolean) {
@@ -133,23 +159,25 @@ function useBootScreen() {
 
 export default function Home() {
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [uiModalOpen, setUiModalOpen] = useState(false);
   const refs = useHUDRefs();
 
   useBootScreen();
-  useVFX();
+  useVFXInit();
   useHUD(refs);
+  useModalEvents(setUiModalOpen);
   useArchiveGSAP(archiveOpen);
 
   const closeArchive = useCallback(() => setArchiveOpen(false), []);
+  const enterArchive = useCallback(() => setArchiveOpen(true), []);
 
-  const cornerRefs = useMemo(
-    () => [refs.cTL, refs.cTR, refs.cBL, refs.cBR],
-    [refs.cTL, refs.cTR, refs.cBL, refs.cBR],
-  );
+  const hudVisible = !archiveOpen && !uiModalOpen;
+
+  const cornerRefs = [refs.cTL, refs.cTR, refs.cBL, refs.cBR];
 
   return (
     <>
-      <UIModal onEnter={() => setArchiveOpen(true)} />
+      <UIModal onEnter={enterArchive} />
       <ArchiveModal isOpen={archiveOpen} onClose={closeArchive} />
 
       <div
@@ -157,7 +185,8 @@ export default function Home() {
         ref={refs.borderRef}
         role="region"
         aria-label="Game interface"
-        style={{ opacity: 0 }}
+        aria-hidden={!hudVisible}
+        style={{ opacity: 0, visibility: hudVisible ? 'visible' : 'hidden' }}
       >
         <div id="sfb-frame-top"    className="sfb-frame-line h" />
         <div id="sfb-frame-bottom" className="sfb-frame-line h bottom" />
@@ -178,12 +207,12 @@ export default function Home() {
         <span className="sfb-tick-num l" style={{ opacity: 0 }}>Y:0.500</span>
         <span className="sfb-tick-num r" style={{ opacity: 0 }}>Y:0.500</span>
 
-        <div className="sfb-hud tl sfb-flicker"   ref={refs.hudTLRef}  style={{ opacity: 0 }} />
-        <div className="sfb-counter sfb-flicker-2" ref={refs.frameRef}  style={{ opacity: 0 }}>
+        <div className="sfb-hud tl sfb-flicker"   ref={refs.hudTLRef} style={{ opacity: 0 }} />
+        <div className="sfb-counter sfb-flicker-2" ref={refs.frameRef} style={{ opacity: 0 }}>
           FRAME·REF
         </div>
-        <div className="sfb-hud bl sfb-flicker"   ref={refs.hudBLRef}  style={{ opacity: 0 }} />
-        <div className="sfb-hud br sfb-flicker-2" ref={refs.hudBRRef}  style={{ opacity: 0 }} />
+        <div className="sfb-hud bl sfb-flicker"   ref={refs.hudBLRef} style={{ opacity: 0 }} />
+        <div className="sfb-hud br sfb-flicker-2" ref={refs.hudBRRef} style={{ opacity: 0 }} />
 
         <div className="sfb-ticker" ref={refs.tickerRef} style={{ opacity: 0 }}>
           <span className="sfb-ticker-inner">
@@ -220,6 +249,13 @@ export default function Home() {
       </div>
 
       <div id="boot-screen" aria-hidden="true"><div id="boot-lines" /></div>
+
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:px-4 focus:py-2 focus:bg-white focus:text-black"
+      >
+        Skip to content
+      </a>
     </>
   );
 }
