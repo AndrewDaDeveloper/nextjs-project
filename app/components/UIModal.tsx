@@ -56,6 +56,7 @@ export default function UIModal() {
                 key={i}
                 className={`row${active === i ? " active" : ""}`}
                 onMouseEnter={() => setActive(i)}
+                onClick={() => setActive(i)}
               >
                 <div className="bar" />
                 <span className="name">{item.name}</span>

@@ -70,7 +70,7 @@ export const GalleryShader = {
       lum+=rand(uv+vec2(time*.007,seed*.003))*.035;
       float mask=smoothstep(0.,.07,uv.x)*smoothstep(1.,.93,uv.x)*smoothstep(0.,.06,uv.y)*smoothstep(1.,.94,uv.y);
       float a=mask*opacity;
-      gl_FragColor=vec4(vec3(lum*a),a*0.97+0.03*mask);
+      gl_FragColor=vec4(vec3(lum)*a,a);
     }
   `,
 };

@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
-import Head from 'next/head';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './global.css';
@@ -9,6 +8,10 @@ import { initVFX } from '../lib/vfxShaders/initVFX';
 import { buildHUD } from '../lib/interface/hud';
 import { startFrameCounter } from '../lib/utils/frameCounter';
 import { createScrollUpdater, registerScrollListeners } from '../lib/utils/scrollbar';
+import ArchiveModal from './components/ArchiveModal/ArchiveModal';
+import UIModal from '@/app/components/UIModal';
+
+gsap.registerPlugin(ScrollTrigger);
 
 function isWebGLAvailable(): boolean {
   try {
@@ -26,11 +29,6 @@ function showWebGLError(): void {
   el.innerHTML = '<h1 style="color:#ff4444;margin-bottom:20px;">WebGL Not Available</h1><p style="max-width:500px;line-height:1.6;">Your browser does not support WebGL. Please enable hardware acceleration or try a different browser.</p>';
   document.body.appendChild(el);
 }
-import ArchiveModal from './components/ArchiveModal/ArchiveModal';
-import UIModal from '@/app/components/UIModal';
-
-gsap.registerPlugin(ScrollTrigger);
-
 
 const TICKS = ['t-c','t-l','t-r','b-c','b-l','b-r','l-c','l-t','l-b','r-c','r-t','r-b'] as const;
 const CORNER_POSITIONS = ['tl','tr','bl','br'] as const;
@@ -184,8 +182,6 @@ export default function Home() {
 
   return (
     <>
-      <Head><title>Sovereign States Militia | SSM</title></Head>
-
       <UIModal />
       <ArchiveModal isOpen={archiveOpen} onClose={closeArchive} />
 

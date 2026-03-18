@@ -8,32 +8,31 @@ export function typeIn(
   duration = 0.8
 ): { tl: gsap.core.Timeline; cancel: () => void } {
   const tl = gsap.timeline();
-  const intervals: ReturnType<typeof setInterval>[] = [];
   const chars = finalText.split('');
-  const charDelay = duration / chars.length;
+  const charDurationMs = (duration * 1000) / chars.length;
+  let iv: ReturnType<typeof setInterval> | null = null;
 
-  chars.forEach((char, i) => {
-    tl.add(() => {
-      const resolved = finalText.slice(0, i);
-      if (char === '\n') {
-        el.innerHTML = resolved.replace(/\n/g, '<br/>') + '<br/>';
+  tl.add(() => {
+    const start = performance.now();
+
+    iv = setInterval(() => {
+      const elapsed = performance.now() - start;
+      const settled = Math.min(Math.floor(elapsed / charDurationMs), chars.length);
+      const html = finalText.slice(0, settled).replace(/\n/g, '<br/>');
+
+      if (settled >= chars.length) {
+        el.innerHTML = html;
+        if (iv !== null) { clearInterval(iv); iv = null; }
         return;
       }
-      let f = 0;
-      const iv = setInterval(() => {
-        el.innerHTML =
-          resolved.replace(/\n/g, '<br/>') +
-          (f < 3 ? GLYPHS[Math.floor(Math.random() * GLYPHS.length)] : char);
-        f++;
-        if (f > 3) clearInterval(iv);
-      }, 28);
-      intervals.push(iv);
-    }, i * charDelay);
-  });
+
+      el.innerHTML = html + GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+    }, 28);
+  }, 0);
 
   const cancel = () => {
     tl.kill();
-    intervals.forEach(clearInterval);
+    if (iv !== null) { clearInterval(iv); iv = null; }
   };
 
   return { tl, cancel };
