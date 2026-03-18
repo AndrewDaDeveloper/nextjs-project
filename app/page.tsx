@@ -8,7 +8,7 @@ import { initVFX } from '../lib/vfxShaders/initVFX';
 import { buildHUD } from '../lib/interface/hud';
 import { createScrollUpdater, registerScrollListeners } from '../lib/utils/scrollbar';
 import ArchiveModal from './components/ArchiveModal/ArchiveModal';
-import UIModal from '@/app/components/UIModal';
+import UIModal from '@/app/components/Modal/UIModal';
 
 function isWebGLAvailable(): boolean {
   try {
