@@ -4,15 +4,19 @@ import { loadVFXScript } from '@/lib/utils/loadVFXScript';
 
 type Phase = 'idle' | 'loading' | 'active' | 'leaving';
 
+interface VFXInstance {
+  destroy: () => void;
+}
+
 interface UseVFXOptions {
-  abortRef:    React.MutableRefObject<boolean>;
-  shaderRef:   React.MutableRefObject<string | null>;
-  canvasRef:   React.RefObject<HTMLCanvasElement | null>;
-  setPhase:    (p: Phase) => void;
+  abortRef:  React.MutableRefObject<boolean>;
+  shaderRef: React.MutableRefObject<string | null>;
+  canvasRef: React.RefObject<HTMLCanvasElement | null>;
+  setPhase:  (p: Phase) => void;
 }
 
 export function useVFX({ abortRef, shaderRef, canvasRef, setPhase }: UseVFXOptions) {
-  const vfxRef        = useRef<any>(null);
+  const vfxRef        = useRef<VFXInstance | null>(null);
   const vfxBodyCanvas = useRef<HTMLCanvasElement | null>(null);
 
   const destroyVFX = useCallback(() => {
@@ -38,7 +42,7 @@ export function useVFX({ abortRef, shaderRef, canvasRef, setPhase }: UseVFXOptio
       const all = [...document.body.querySelectorAll('canvas')] as HTMLCanvasElement[];
       vfxBodyCanvas.current = all[all.length - 1] ?? null;
       if (vfxBodyCanvas.current) {
-        vfxBodyCanvas.current.style.zIndex       = '10002';
+        vfxBodyCanvas.current.style.zIndex        = '10002';
         vfxBodyCanvas.current.style.pointerEvents = 'none';
       }
     } catch (err: any) {

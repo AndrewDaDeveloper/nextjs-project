@@ -12,13 +12,13 @@ interface EncryptedLoaderProps {
 
 export default function EncryptedLoader({ progress, onDone }: EncryptedLoaderProps) {
   const [cipherLine, setCipherLine] = useState('');
-  const [dotCount, setDotCount]     = useState(0);
-  const [pixelMode, setPixelMode]   = useState<'reveal' | 'cover' | null>('reveal');
+  const [dotCount,   setDotCount]   = useState(0);
+  const [pixelMode,  setPixelMode]  = useState<'reveal' | 'cover' | null>('reveal');
 
-  const frameRef  = useRef(0);
-  const rafRef    = useRef(0);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const cancelRef = useRef<(() => void) | null>(null);
+  const frameRef   = useRef(0);
+  const rafRef     = useRef(0);
+  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const cancelRef  = useRef<(() => void) | null>(null);
   const coveredRef = useRef(false);
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function EncryptedLoader({ progress, onDone }: EncryptedLoaderPro
       setPixelMode(null);
     });
     return () => { cancelRef.current?.(); cancelRef.current = null; };
-  }, [pixelMode]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pixelMode, onDone]);
 
   useEffect(() => {
     if (progress >= 1 && !coveredRef.current) {

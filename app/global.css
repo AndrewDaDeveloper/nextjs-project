@@ -29,7 +29,7 @@
 ::-webkit-scrollbar{display:none}
 html{-ms-overflow-style:none;scrollbar-width:none}
 html,body{width:100%;background:#000;overflow-x:hidden;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Helvetica Neue',sans-serif;color:#fff}
-canvas{pointer-events:none !important}
+canvas{pointer-events:none}
 
 section{margin:40vh 20%;width:60%;color:#fff}
 .col{display:flex;gap:1em;margin:2em 0}

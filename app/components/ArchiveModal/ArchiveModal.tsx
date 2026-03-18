@@ -19,29 +19,45 @@ const DiscordIcon = () => (
   </svg>
 );
 
-const btnBase: React.CSSProperties = {
-  background: 'transparent',
-  border: '1px solid rgba(255,255,255,0.3)',
-  color: 'rgba(255,255,255,0.7)',
-  fontFamily: "'Courier New',monospace",
-  letterSpacing: '0.2em',
-  fontSize: 12,
-  padding: '12px 36px',
-  cursor: 'pointer',
-  transition: 'border-color 0.2s,color 0.2s,box-shadow 0.2s',
-  whiteSpace: 'nowrap',
-};
+function ArchiveButton({ onClick, children }: { onClick: (e: React.MouseEvent<HTMLButtonElement>) => void; children: React.ReactNode }) {
+  const [hovered, setHovered] = useState(false);
+
+  const style: React.CSSProperties = {
+    background:    'transparent',
+    border:        `1px solid ${hovered ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)'}`,
+    color:         hovered ? '#fff' : 'rgba(255,255,255,0.7)',
+    boxShadow:     hovered ? '0 0 18px rgba(255,255,255,0.15)' : 'none',
+    fontFamily:    "'Courier New',monospace",
+    letterSpacing: '0.2em',
+    fontSize:      12,
+    padding:       '12px 36px',
+    cursor:        'pointer',
+    transition:    'border-color 0.2s,color 0.2s,box-shadow 0.2s',
+    whiteSpace:    'nowrap',
+  };
+
+  return (
+    <button
+      style={style}
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {children}
+    </button>
+  );
+}
 
 export default function ArchiveModal({
   isOpen,
   onClose,
   discordInvite = 'https://discord.gg/Bn7V253dGp',
 }: ArchiveModalProps) {
-  const [phase, setPhase]       = useState<Phase>('idle');
+  const [phase,    setPhase]    = useState<Phase>('idle');
   const [progress, setProgress] = useState(0);
-  const [mounted, setMounted]   = useState(false);
+  const [mounted,  setMounted]  = useState(false);
 
-  const canvasRef  = useRef<HTMLCanvasElement>(null);
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const timeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const abortRef    = useRef(false);
@@ -98,16 +114,6 @@ export default function ArchiveModal({
     }, 600);
   }, [phase, destroyVFX, onClose]);
 
-  const hover = useCallback(
-    (on: boolean) => (e: React.MouseEvent<HTMLButtonElement>) => {
-      const s = e.currentTarget.style;
-      s.borderColor = on ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)';
-      s.color       = on ? '#fff' : 'rgba(255,255,255,0.7)';
-      s.boxShadow   = on ? '0 0 18px rgba(255,255,255,0.15)' : 'none';
-    },
-    []
-  );
-
   if (!isOpen && phase === 'idle') return null;
 
   const buttons = mounted ? createPortal(
@@ -116,23 +122,15 @@ export default function ArchiveModal({
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
       zIndex: 2147483647,
       pointerEvents: phase === 'active' ? 'auto' : 'none',
-      opacity: phase === 'active' ? 1 : 0,
-      transition: 'opacity 0.45s 0.1s ease',
+      opacity:       phase === 'active' ? 1 : 0,
+      transition:    'opacity 0.45s 0.1s ease',
     }}>
-      <button
-        onClick={e => { e.stopPropagation(); window.open(discordInvite, '_blank'); }}
-        onMouseEnter={hover(true)} onMouseLeave={hover(false)}
-        style={btnBase}
-      >
+      <ArchiveButton onClick={e => { e.stopPropagation(); window.open(discordInvite, '_blank'); }}>
         <DiscordIcon />JOIN US
-      </button>
-      <button
-        onClick={e => { e.stopPropagation(); handleClose(); }}
-        onMouseEnter={hover(true)} onMouseLeave={hover(false)}
-        style={btnBase}
-      >
+      </ArchiveButton>
+      <ArchiveButton onClick={e => { e.stopPropagation(); handleClose(); }}>
         [ BACK ]
-      </button>
+      </ArchiveButton>
     </div>,
     document.body
   ) : null;
@@ -143,8 +141,8 @@ export default function ArchiveModal({
 
       <div style={{
         position: 'fixed', inset: 0, zIndex: 10000, backgroundColor: '#000',
-        opacity: phase === 'leaving' ? 0 : 1,
-        transform: phase === 'leaving' ? 'scale(1.04)' : 'scale(1)',
+        opacity:    phase === 'leaving' ? 0 : 1,
+        transform:  phase === 'leaving' ? 'scale(1.04)' : 'scale(1)',
         transition: 'opacity 0.55s cubic-bezier(0.4,0,0.2,1),transform 0.55s cubic-bezier(0.4,0,0.2,1)',
       }}>
         <div aria-hidden style={{
