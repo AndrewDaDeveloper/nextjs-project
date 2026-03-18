@@ -8,31 +8,83 @@ export function typeIn(
   duration = 0.8
 ): { tl: gsap.core.Timeline; cancel: () => void } {
   const tl = gsap.timeline();
+  let rafId = 0;
+  let cancelled = false;
+
   const chars = finalText.split('');
-  const charDurationMs = (duration * 1000) / chars.length;
-  let iv: ReturnType<typeof setInterval> | null = null;
+  const charDelay = duration / chars.length;
+
+  let scrambleCount = 0;
+  let charIndex = 0;
+  let lastCharTime = 0;
+  const SCRAMBLE_FRAMES = 3;
+
+  const lines = finalText.split('\n');
+  const nodes: Text[] = [];
+
+  el.innerHTML = '';
+  lines.forEach((line, i) => {
+    const span = document.createElement('span');
+    span.style.display = 'block';
+    const textNode = document.createTextNode('');
+    span.appendChild(textNode);
+    el.appendChild(span);
+    if (i < lines.length - 1) el.appendChild(document.createElement('br'));
+    nodes.push(textNode);
+  });
+
+  const lineTexts = lines.map(() => '');
+
+  function getLineAndCol(idx: number): [number, number] {
+    let count = 0;
+    for (let l = 0; l < lines.length; l++) {
+      if (idx < count + lines[l].length) return [l, idx - count];
+      count += lines[l].length + 1;
+    }
+    return [lines.length - 1, lines[lines.length - 1].length];
+  }
 
   tl.add(() => {
-    const start = performance.now();
+    const startTime = performance.now();
 
-    iv = setInterval(() => {
-      const elapsed = performance.now() - start;
-      const settled = Math.min(Math.floor(elapsed / charDurationMs), chars.length);
-      const html = finalText.slice(0, settled).replace(/\n/g, '<br/>');
+    const frame = (now: number) => {
+      if (cancelled) return;
 
-      if (settled >= chars.length) {
-        el.innerHTML = html;
-        if (iv !== null) { clearInterval(iv); iv = null; }
-        return;
+      const elapsed = (now - startTime) / 1000;
+      const targetChar = Math.floor(elapsed / charDelay);
+
+      while (charIndex < targetChar && charIndex < chars.length) {
+        const [lineIdx, colIdx] = getLineAndCol(charIndex);
+        if (chars[charIndex] !== '\n') {
+          lineTexts[lineIdx] = lineTexts[lineIdx].slice(0, colIdx) + chars[charIndex];
+          nodes[lineIdx].nodeValue = lineTexts[lineIdx];
+        }
+        charIndex++;
+        scrambleCount = 0;
       }
 
-      el.innerHTML = html + GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
-    }, 28);
+      if (charIndex < chars.length) {
+        const [lineIdx, colIdx] = getLineAndCol(charIndex);
+        if (scrambleCount < SCRAMBLE_FRAMES) {
+          const scramble = GLYPHS[Math.floor(Math.random() * GLYPHS.length)];
+          nodes[lineIdx].nodeValue = lineTexts[lineIdx].slice(0, colIdx) + scramble;
+          scrambleCount++;
+        }
+        rafId = requestAnimationFrame(frame);
+      } else {
+        lines.forEach((line, i) => {
+          nodes[i].nodeValue = line;
+        });
+      }
+    };
+
+    rafId = requestAnimationFrame(frame);
   }, 0);
 
   const cancel = () => {
+    cancelled = true;
     tl.kill();
-    if (iv !== null) { clearInterval(iv); iv = null; }
+    cancelAnimationFrame(rafId);
   };
 
   return { tl, cancel };

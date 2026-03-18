@@ -1,33 +1,24 @@
 import { gsap } from 'gsap';
 
-let cachedEl: HTMLElement | null | undefined = undefined;
-
-function resolveScrollEl(): HTMLElement {
-  if (cachedEl !== undefined) return cachedEl ?? document.documentElement;
-
-  const candidates = [
-    document.querySelector<HTMLElement>('[data-scroll-container]'),
-    document.querySelector<HTMLElement>('.scroll-container'),
-    document.querySelector<HTMLElement>('#scroll-container'),
-    document.querySelector<HTMLElement>('main'),
+function getScroll(): { top: number; max: number } {
+  const candidates: (Element | null)[] = [
+    document.querySelector('[data-scroll-container]'),
+    document.querySelector('.scroll-container'),
+    document.querySelector('#scroll-container'),
+    document.querySelector('main'),
   ];
 
   for (const el of candidates) {
-    if (el && el.scrollHeight - el.clientHeight > 10) {
-      cachedEl = el;
-      return el;
-    }
+    if (!el) continue;
+    const { scrollTop, scrollHeight, clientHeight } = el as HTMLElement;
+    const max = scrollHeight - clientHeight;
+    if (max > 10) return { top: scrollTop, max };
   }
 
-  cachedEl = null;
-  return document.documentElement;
-}
-
-function getScroll(): { top: number; max: number } {
-  const el = resolveScrollEl();
-  const top = el === document.documentElement ? window.scrollY : el.scrollTop;
-  const max = Math.max(el.scrollHeight - el.clientHeight, 0);
-  return { top, max };
+  return {
+    top: window.scrollY,
+    max: document.documentElement.scrollHeight - window.innerHeight,
+  };
 }
 
 interface ScrollBarRefs {
@@ -52,8 +43,6 @@ export function createScrollUpdater(refs: ScrollBarRefs): () => void {
 }
 
 export function registerScrollListeners(handler: () => void): () => void {
-  const el = resolveScrollEl();
-  const target: EventTarget = el === document.documentElement ? window : el;
-  target.addEventListener('scroll', handler, { passive: true });
-  return () => target.removeEventListener('scroll', handler);
+  window.addEventListener('scroll', handler, { passive: true });
+  return () => window.removeEventListener('scroll', handler);
 }

@@ -3,15 +3,12 @@ import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import './global.css';
-import { initBootScreen } from '../lib/interface/bootScreen';
+import { initBootScreen, destroyBootScreen } from '../lib/interface/bootScreen';
 import { initVFX } from '../lib/vfxShaders/initVFX';
 import { buildHUD } from '../lib/interface/hud';
-import { startFrameCounter } from '../lib/utils/frameCounter';
 import { createScrollUpdater, registerScrollListeners } from '../lib/utils/scrollbar';
 import ArchiveModal from './components/ArchiveModal/ArchiveModal';
 import UIModal from '@/app/components/UIModal';
-
-gsap.registerPlugin(ScrollTrigger);
 
 function isWebGLAvailable(): boolean {
   try {
@@ -30,12 +27,13 @@ function showWebGLError(): void {
   document.body.appendChild(el);
 }
 
+gsap.registerPlugin(ScrollTrigger);
+
 const TICKS = ['t-c','t-l','t-r','b-c','b-l','b-r','l-c','l-t','l-b','r-c','r-t','r-b'] as const;
 const CORNER_POSITIONS = ['tl','tr','bl','br'] as const;
 const SIDE_BAR_SIDES = ['left','right'] as const;
 
 function useHUDRefs() {
-  const counterRef   = useRef<HTMLSpanElement>(null);
   const leftBarRef   = useRef<HTMLDivElement>(null);
   const rightBarRef  = useRef<HTMLDivElement>(null);
   const leftPctRef   = useRef<HTMLSpanElement>(null);
@@ -55,7 +53,7 @@ function useHUDRefs() {
   const cBR = useRef<HTMLDivElement>(null);
 
   return {
-    counterRef, leftBarRef, rightBarRef, leftPctRef, rightPctRef,
+    leftBarRef, rightBarRef, leftPctRef, rightPctRef,
     borderRef, hudTLRef, hudBLRef, hudBRRef, frameRef,
     tickerRef, statusRef, leftWrapRef, rightWrapRef,
     cTL, cTR, cBL, cBR,
@@ -75,10 +73,6 @@ function useVFX() {
 
 function useHUD(refs: ReturnType<typeof useHUDRefs>) {
   useEffect(() => {
-    const stopCounter = refs.counterRef.current
-      ? startFrameCounter(refs.counterRef.current)
-      : () => {};
-
     const updateBars = createScrollUpdater({
       leftBarRef:  refs.leftBarRef  as React.RefObject<HTMLDivElement>,
       rightBarRef: refs.rightBarRef as React.RefObject<HTMLDivElement>,
@@ -119,7 +113,6 @@ function useHUD(refs: ReturnType<typeof useHUDRefs>) {
     const fallback = setTimeout(() => { clearInterval(poll); fireHUD(); }, 5000);
 
     return () => {
-      stopCounter();
       gsap.ticker.remove(updateBars);
       unregisterScroll();
       clearInterval(poll);
@@ -156,6 +149,7 @@ function useArchiveGSAP(archiveOpen: boolean) {
 function useBootScreen() {
   useEffect(() => {
     initBootScreen();
+    return () => destroyBootScreen();
   }, []);
 }
 
@@ -214,7 +208,7 @@ export default function Home() {
 
         <div className="sfb-hud tl sfb-flicker"   ref={refs.hudTLRef}  style={{ opacity: 0 }} />
         <div className="sfb-counter sfb-flicker-2" ref={refs.frameRef}  style={{ opacity: 0 }}>
-          <span ref={refs.counterRef}>00000 · 000</span><br />FRAME·REF
+          FRAME·REF
         </div>
         <div className="sfb-hud bl sfb-flicker"   ref={refs.hudBLRef}  style={{ opacity: 0 }} />
         <div className="sfb-hud br sfb-flicker-2" ref={refs.hudBRRef}  style={{ opacity: 0 }} />
@@ -253,7 +247,7 @@ export default function Home() {
         </div>
       </div>
 
-      <div id="boot-screen" aria-hidden="true"><div id="boot-lines" /></div>
+      <div id="boot-screen" aria-hidden="true" />
 
       <a
         href="#nav-overlay"
