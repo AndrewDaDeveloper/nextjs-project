@@ -9,6 +9,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@deck.gl/aggregation-layers": "^9.2.11",
+    "@deck.gl/core": "^9.2.11",
+    "@deck.gl/layers": "^9.2.11",
+    "@deck.gl/mapbox": "^9.2.11",
+    "@deck.gl/mesh-layers": "^9.2.11",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.0",
     "@vfx-js/core": "^0.8.0",

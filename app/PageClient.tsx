@@ -1,13 +1,16 @@
 'use client';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, lazy, Suspense } from 'react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { initBootScreen } from '../lib/interface/bootScreen';
 import { initVFX } from '../lib/vfxShaders/initVFX';
 import { buildHUD } from '../lib/interface/hud';
 import { createScrollUpdater, registerScrollListeners } from '../lib/utils/scrollbar';
-import ArchiveModal from './components/ArchiveModal/ArchiveModal';
 import UIModal from '@/app/components/Modal/UIModal';
+import ErrorBoundary from './components/ErrorBoundary';
+
+// Lazy load ArchiveModal for better initial bundle size
+const ArchiveModal = lazy(() => import('./components/ArchiveModal/ArchiveModal'));
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -176,13 +179,15 @@ export default function PageClient() {
   const cornerRefs = [refs.cTL, refs.cTR, refs.cBL, refs.cBR];
 
   return (
-    <>
+    <ErrorBoundary>
       <UIModal
         isOpen={uiModalOpen}
         onClose={closeUIModal}
         onEnter={enterArchive}
       />
-      <ArchiveModal isOpen={archiveOpen} onClose={closeArchive} />
+      <Suspense fallback={null}>
+        <ArchiveModal isOpen={archiveOpen} onClose={closeArchive} />
+      </Suspense>
 
       <div
         id="scifi-border"
@@ -251,6 +256,6 @@ export default function PageClient() {
           ))}
         </div>
       </div>
-    </>
+    </ErrorBoundary>
   );
 }

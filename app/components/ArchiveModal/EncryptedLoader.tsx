@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { runPixels } from '@/lib/utils/pixelCanvas';
 
 const CIPHER_CHARS = '0123456789ABCDEF!@#$%^&*<>?/';
@@ -10,7 +10,7 @@ interface EncryptedLoaderProps {
   onDone?: () => void;
 }
 
-export default function EncryptedLoader({ progress, onDone }: EncryptedLoaderProps) {
+const EncryptedLoader = memo(function EncryptedLoader({ progress, onDone }: EncryptedLoaderProps) {
   const [cipherLine, setCipherLine] = useState('');
   const [dotCount,   setDotCount]   = useState(0);
   const [pixelMode,  setPixelMode]  = useState<'reveal' | 'cover' | null>('reveal');
@@ -118,4 +118,6 @@ export default function EncryptedLoader({ progress, onDone }: EncryptedLoaderPro
       />
     </div>
   );
-}
+});
+
+export default EncryptedLoader;
